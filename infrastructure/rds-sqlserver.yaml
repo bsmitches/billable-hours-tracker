@@ -10,7 +10,7 @@ Parameters:
     Default: 'timetracker'
   DBUsername:
     Type: String
-    Default: 'admin'
+    Description: 'Master username for the database (avoid using default names like admin)'
   DBPassword:
     Type: String
     NoEcho: true
@@ -58,6 +58,7 @@ Resources:
       BackupRetentionPeriod: 7
       MultiAZ: false
       StorageEncrypted: true
+      PubliclyAccessible: false
     DeletionPolicy: Snapshot
 
 Outputs:
