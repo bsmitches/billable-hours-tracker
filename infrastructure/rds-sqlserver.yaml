@@ -19,6 +19,9 @@ Parameters:
     Type: AWS::EC2::VPC::Id
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
+  AppSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: 'Security group ID of the application servers that need database access'
 
 Resources:
   DBSubnetGroup:
@@ -36,7 +39,7 @@ Resources:
         - IpProtocol: tcp
           FromPort: 1433
           ToPort: 1433
-          CidrIp: 0.0.0.0/0
+          SourceSecurityGroupId: !Ref AppSecurityGroupId
 
   DatabaseInstance:
     Type: AWS::RDS::DBInstance
