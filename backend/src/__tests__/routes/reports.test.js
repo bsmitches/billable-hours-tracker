@@ -145,21 +145,21 @@ describe('Report Routes', () => {
       expect(response.body).toEqual({ error: 'Internal server error' });
     });
 
-    test('should filter work entries by user email', async () => {
+    test('should return all work entries for client (global - from all users)', async () => {
       mockDb.get.mockImplementation((query, params, callback) => {
         callback(null, { id: 1, name: 'Test Client' });
       });
 
       mockDb.all.mockImplementation((query, params, callback) => {
-        expect(params).toEqual([1, 'test@example.com']);
+        expect(params).toEqual([1]);
         callback(null, []);
       });
 
       await request(app).get('/api/reports/client/1');
 
       expect(mockDb.all).toHaveBeenCalledWith(
-        expect.stringContaining('WHERE client_id = ? AND user_email = ?'),
-        [1, 'test@example.com'],
+        expect.stringContaining('WHERE client_id = ?'),
+        [1],
         expect.any(Function)
       );
     });
@@ -242,15 +242,15 @@ describe('Report Routes', () => {
     });
   });
 
-  describe('Data Isolation', () => {
-    test('should only return data for authenticated user', async () => {
+  describe('Global Client Access', () => {
+    test('should return data for any client (global - no user filtering)', async () => {
       mockDb.get.mockImplementation((query, params, callback) => {
-        expect(params).toContain('test@example.com');
+        expect(params).toEqual([1]);
         callback(null, { id: 1, name: 'Test Client' });
       });
 
       mockDb.all.mockImplementation((query, params, callback) => {
-        expect(params).toContain('test@example.com');
+        expect(params).toEqual([1]);
         callback(null, []);
       });
 
@@ -258,7 +258,7 @@ describe('Report Routes', () => {
 
       expect(mockDb.get).toHaveBeenCalledWith(
         expect.any(String),
-        expect.arrayContaining(['test@example.com']),
+        [1],
         expect.any(Function)
       );
     });
