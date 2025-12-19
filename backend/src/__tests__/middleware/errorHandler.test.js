@@ -1,3 +1,17 @@
+/**
+ * @fileoverview Unit tests for the error handler middleware.
+ * 
+ * This test suite verifies the functionality of the errorHandler middleware including:
+ * - Joi validation error handling (400 Bad Request)
+ * - SQLite database error handling (500 Internal Server Error)
+ * - Generic error handling with custom status codes
+ * - Default error responses for unspecified errors
+ * - Console error logging
+ * 
+ * @module __tests__/middleware/errorHandler.test
+ * @requires ../../middleware/errorHandler - Module under test
+ */
+
 const { errorHandler } = require('../../middleware/errorHandler');
 
 describe('Error Handler Middleware', () => {

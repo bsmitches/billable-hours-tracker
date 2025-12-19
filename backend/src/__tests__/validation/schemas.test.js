@@ -1,3 +1,19 @@
+/**
+ * @fileoverview Unit tests for Joi validation schemas.
+ * 
+ * This test suite verifies the functionality of all validation schemas including:
+ * - clientSchema - Client creation validation
+ * - updateClientSchema - Client update validation (partial)
+ * - workEntrySchema - Work entry creation validation
+ * - updateWorkEntrySchema - Work entry update validation (partial)
+ * - emailSchema - Email format validation
+ * 
+ * Tests cover valid inputs, boundary conditions, and validation error messages.
+ * 
+ * @module __tests__/validation/schemas.test
+ * @requires ../../validation/schemas - Schemas under test
+ */
+
 const {
   clientSchema,
   workEntrySchema,

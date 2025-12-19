@@ -1,3 +1,23 @@
+/**
+ * @fileoverview Login page component for the Billable Hours Tracker.
+ * 
+ * This page provides email-based authentication for users. It features:
+ * - Email input form with validation
+ * - Loading state during authentication
+ * - Error message display for failed login attempts
+ * - Automatic redirect to dashboard on successful login
+ * 
+ * Note: This application uses email-only authentication (no passwords)
+ * for development purposes. Production deployment should integrate
+ * with a proper authentication provider.
+ * 
+ * @module pages/LoginPage
+ * @requires react - React library for UI components
+ * @requires @mui/material - Material-UI component library
+ * @requires ../contexts/AuthContext - Authentication context
+ * @requires react-router-dom - Client-side routing
+ */
+
 import React, { useState } from 'react';
 import {
   Container,
@@ -12,6 +32,12 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
+/**
+ * Login page component.
+ * Renders email authentication form and handles login flow.
+ * 
+ * @returns {JSX.Element} Login form with email input
+ */
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');

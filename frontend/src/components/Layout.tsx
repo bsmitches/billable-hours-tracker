@@ -1,3 +1,23 @@
+/**
+ * @fileoverview Main layout component for the Billable Hours Tracker.
+ * 
+ * This module provides the application shell including:
+ * - Responsive app bar with user info and logout button
+ * - Collapsible navigation drawer with menu items
+ * - Main content area for page components
+ * 
+ * The layout is responsive:
+ * - Desktop: Permanent drawer on the left
+ * - Mobile: Temporary drawer that can be toggled
+ * 
+ * @module components/Layout
+ * @requires react - React library for UI components
+ * @requires @mui/material - Material-UI component library
+ * @requires @mui/icons-material - Material-UI icons
+ * @requires react-router-dom - Client-side routing
+ * @requires ../contexts/AuthContext - Authentication context
+ */
+
 import React, { type ReactNode } from 'react';
 import {
   AppBar,
@@ -26,12 +46,30 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
+/** Width of the navigation drawer in pixels */
 const drawerWidth = 240;
 
+/**
+ * Props for the Layout component.
+ * @interface LayoutProps
+ */
 interface LayoutProps {
+  /** Page content to render in the main area */
   children: ReactNode;
 }
 
+/**
+ * Main layout component wrapping all authenticated pages.
+ * Provides navigation drawer, app bar, and content area.
+ * 
+ * @param {LayoutProps} props - Component props
+ * @returns {JSX.Element} Layout with navigation and content area
+ * 
+ * @example
+ * <Layout>
+ *   <DashboardPage />
+ * </Layout>
+ */
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();

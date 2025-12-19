@@ -1,8 +1,27 @@
+/**
+ * @fileoverview Integration tests for the authentication routes.
+ * 
+ * This test suite verifies the functionality of the auth API endpoints including:
+ * - POST /api/auth/login - User login and auto-registration
+ * - GET /api/auth/me - Get current user profile
+ * 
+ * Tests cover success cases, validation errors, and database error handling.
+ * Uses supertest for HTTP assertions and mocked database for isolation.
+ * 
+ * @module __tests__/routes/auth.test
+ * @requires supertest - HTTP assertion library
+ * @requires ../../routes/auth - Routes under test
+ * @requires ../../database/init - Mocked database module
+ */
+
 const request = require('supertest');
 const express = require('express');
 const authRoutes = require('../../routes/auth');
 const { getDatabase } = require('../../database/init');
 
+/**
+ * Mock the database initialization module to provide controlled test behavior.
+ */
 jest.mock('../../database/init');
 
 const app = express();

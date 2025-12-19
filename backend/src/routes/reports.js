@@ -1,3 +1,28 @@
+/**
+ * @fileoverview Report generation and export routes for the Billable Hours Tracker API.
+ * 
+ * This module provides endpoints for generating client-specific work reports and
+ * exporting them in various formats (JSON, CSV, PDF). Reports aggregate work entries
+ * by client and calculate total hours worked.
+ * 
+ * Endpoints:
+ * - GET /api/reports/client/:clientId - Get JSON report for a client
+ * - GET /api/reports/export/csv/:clientId - Export client report as CSV file
+ * - GET /api/reports/export/pdf/:clientId - Export client report as PDF file
+ * 
+ * Data Isolation: All queries filter by user_email to ensure users can only
+ * generate reports for their own clients.
+ * 
+ * @module routes/reports
+ * @requires express - Web framework for Node.js
+ * @requires ../database/init - Database connection module
+ * @requires ../middleware/auth - Authentication middleware
+ * @requires csv-writer - CSV file generation library
+ * @requires pdfkit - PDF document generation library
+ * @requires path - Node.js path utilities
+ * @requires fs - Node.js file system utilities
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
@@ -6,12 +31,46 @@ const PDFDocument = require('pdfkit');
 const path = require('path');
 const fs = require('fs');
 
+/**
+ * Express router instance for report routes.
+ * @type {express.Router}
+ */
 const router = express.Router();
 
-// All routes require authentication
+/**
+ * Apply authentication middleware to all report routes.
+ * This ensures all endpoints require a valid x-user-email header.
+ */
 router.use(authenticateUser);
 
-// Get hourly report for specific client
+/**
+ * Get hourly report for a specific client.
+ * Returns all work entries for the client with calculated totals.
+ * 
+ * @route GET /api/reports/client/:clientId
+ * @param {string} req.params.clientId - Client ID (must be a valid integer)
+ * @middleware authenticateUser - Validates x-user-email header
+ * @returns {Object} JSON response with client info, work entries, and totals
+ * 
+ * @example
+ * // Request
+ * GET /api/reports/client/1
+ * Headers: { "x-user-email": "user@example.com" }
+ * 
+ * // Response - 200 OK
+ * {
+ *   "client": { "id": 1, "name": "Acme Corp" },
+ *   "workEntries": [{ "id": 1, "hours": 8, "description": "Development", "date": "2024-01-15", ... }],
+ *   "totalHours": 42.5,
+ *   "entryCount": 5
+ * }
+ * 
+ * Response Codes:
+ * - 200 OK: Report generated successfully
+ * - 400 Bad Request: Invalid client ID format
+ * - 404 Not Found: Client not found or doesn't belong to user
+ * - 500 Internal Server Error: Database error
+ */
 router.get('/client/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
@@ -63,7 +122,31 @@ router.get('/client/:clientId', (req, res) => {
   );
 });
 
-// Export client report as CSV
+/**
+ * Export client report as a CSV file.
+ * Generates a downloadable CSV file containing all work entries for the specified client.
+ * The file is created temporarily and deleted after download.
+ * 
+ * @route GET /api/reports/export/csv/:clientId
+ * @param {string} req.params.clientId - Client ID (must be a valid integer)
+ * @middleware authenticateUser - Validates x-user-email header
+ * @returns {File} CSV file download with columns: Date, Hours, Description, Created At
+ * 
+ * @example
+ * // Request
+ * GET /api/reports/export/csv/1
+ * Headers: { "x-user-email": "user@example.com" }
+ * 
+ * // Response - 200 OK (file download)
+ * Content-Type: text/csv
+ * Content-Disposition: attachment; filename="Acme_Corp_report_2024-01-15T10-30-00-000Z.csv"
+ * 
+ * Response Codes:
+ * - 200 OK: CSV file generated and downloaded successfully
+ * - 400 Bad Request: Invalid client ID format
+ * - 404 Not Found: Client not found or doesn't belong to user
+ * - 500 Internal Server Error: Database error or file generation failure
+ */
 router.get('/export/csv/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
@@ -146,7 +229,37 @@ router.get('/export/csv/:clientId', (req, res) => {
   );
 });
 
-// Export client report as PDF
+/**
+ * Export client report as a PDF file.
+ * Generates a downloadable PDF document containing all work entries for the specified client.
+ * The PDF includes a header with client name, summary statistics, and a formatted table of entries.
+ * 
+ * PDF Structure:
+ * - Title: "Time Report for {Client Name}"
+ * - Summary: Total hours, entry count, generation timestamp
+ * - Table: Date, Hours, Description columns
+ * - Pagination: Automatic page breaks when content exceeds page height
+ * 
+ * @route GET /api/reports/export/pdf/:clientId
+ * @param {string} req.params.clientId - Client ID (must be a valid integer)
+ * @middleware authenticateUser - Validates x-user-email header
+ * @returns {File} PDF file download
+ * 
+ * @example
+ * // Request
+ * GET /api/reports/export/pdf/1
+ * Headers: { "x-user-email": "user@example.com" }
+ * 
+ * // Response - 200 OK (file download)
+ * Content-Type: application/pdf
+ * Content-Disposition: attachment; filename="Acme_Corp_report_2024-01-15T10-30-00-000Z.pdf"
+ * 
+ * Response Codes:
+ * - 200 OK: PDF file generated and downloaded successfully
+ * - 400 Bad Request: Invalid client ID format
+ * - 404 Not Found: Client not found or doesn't belong to user
+ * - 500 Internal Server Error: Database error or PDF generation failure
+ */
 router.get('/export/pdf/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
@@ -244,4 +357,8 @@ router.get('/export/pdf/:clientId', (req, res) => {
   );
 });
 
+/**
+ * Export the router for mounting in the main Express app.
+ * @exports router
+ */
 module.exports = router;

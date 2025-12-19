@@ -1,9 +1,29 @@
+/**
+ * @fileoverview Integration tests for the report generation routes.
+ * 
+ * This test suite verifies the functionality of the report API endpoints including:
+ * - GET /api/reports/client/:clientId - Get client report with work entries
+ * - GET /api/reports/export/csv/:clientId - Export report as CSV
+ * - GET /api/reports/export/pdf/:clientId - Export report as PDF
+ * 
+ * Tests cover report generation, hours calculation, data isolation, and error handling.
+ * Uses supertest for HTTP assertions and mocked dependencies for isolation.
+ * 
+ * @module __tests__/routes/reports.test
+ * @requires supertest - HTTP assertion library
+ * @requires ../../routes/reports - Routes under test
+ * @requires ../../database/init - Mocked database module
+ */
+
 const request = require('supertest');
 const express = require('express');
 const { getDatabase } = require('../../database/init');
 const fs = require('fs');
 const path = require('path');
 
+/**
+ * Mock the database initialization module to provide controlled test behavior.
+ */
 jest.mock('../../database/init');
 jest.mock('fs');
 jest.mock('csv-writer', () => ({

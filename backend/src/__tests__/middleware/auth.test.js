@@ -1,6 +1,26 @@
+/**
+ * @fileoverview Unit tests for the authentication middleware.
+ * 
+ * This test suite verifies the functionality of the authenticateUser middleware including:
+ * - Email header validation (presence and format)
+ * - Existing user authentication flow
+ * - New user auto-creation flow
+ * - Database error handling
+ * - Email format edge cases
+ * 
+ * Tests use a mocked database module to isolate middleware logic from database operations.
+ * 
+ * @module __tests__/middleware/auth.test
+ * @requires ../../middleware/auth - Module under test
+ * @requires ../../database/init - Mocked database module
+ */
+
 const { authenticateUser } = require('../../middleware/auth');
 const { getDatabase } = require('../../database/init');
 
+/**
+ * Mock the database initialization module to provide controlled test behavior.
+ */
 jest.mock('../../database/init');
 
 describe('Authentication Middleware', () => {

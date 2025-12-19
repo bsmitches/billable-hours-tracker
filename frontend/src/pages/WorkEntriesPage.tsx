@@ -1,3 +1,28 @@
+/**
+ * @fileoverview Work entry management page for the Billable Hours Tracker.
+ * 
+ * This page provides full CRUD functionality for managing work entries:
+ * - View all work entries in a table format
+ * - Create new work entries with client selection, hours, date, and description
+ * - Edit existing work entries
+ * - Delete work entries (with confirmation)
+ * 
+ * Features:
+ * - Date picker for selecting work date
+ * - Client dropdown populated from user's clients
+ * - Hours validation (0.01-24 range)
+ * - Automatic cache invalidation on mutations
+ * 
+ * @module pages/WorkEntriesPage
+ * @requires react - React library for UI components
+ * @requires @mui/material - Material-UI component library
+ * @requires @mui/icons-material - Material-UI icons
+ * @requires @tanstack/react-query - Server-side state management
+ * @requires @mui/x-date-pickers - Date picker components
+ * @requires ../api/client - API client for CRUD operations
+ * @requires ../types/api - TypeScript type definitions
+ */
+
 import React, { useState } from 'react';
 import {
   Box,
@@ -36,6 +61,12 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import apiClient from '../api/client';
 import { type WorkEntry } from '../types/api';
 
+/**
+ * Work entry management page component.
+ * Provides CRUD interface for tracking billable hours.
+ * 
+ * @returns {JSX.Element} Work entry list table with add/edit/delete functionality
+ */
 const WorkEntriesPage: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<WorkEntry | null>(null);
