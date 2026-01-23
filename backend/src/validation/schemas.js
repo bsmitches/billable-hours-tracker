@@ -1,10 +1,47 @@
+/**
+ * @fileoverview Joi validation schemas for API request body validation.
+ * Defines validation rules for all entity types in the Billable Hours Tracker.
+ * All schemas use parameterized validation to prevent injection attacks.
+ * @module validation/schemas
+ */
+
 const Joi = require('joi');
 
+/**
+ * Validation schema for creating a new client.
+ * 
+ * @type {Joi.ObjectSchema}
+ * @property {string} name - Client name (required, 1-255 characters, trimmed)
+ * @property {string} [description] - Optional client description (max 1000 characters, trimmed)
+ * 
+ * @example
+ * const { error, value } = clientSchema.validate({
+ *   name: 'Acme Corporation',
+ *   description: 'Primary consulting client'
+ * });
+ */
 const clientSchema = Joi.object({
   name: Joi.string().trim().min(1).max(255).required(),
   description: Joi.string().trim().max(1000).optional().allow('')
 });
 
+/**
+ * Validation schema for creating a new work entry.
+ * 
+ * @type {Joi.ObjectSchema}
+ * @property {number} clientId - ID of the associated client (required, positive integer)
+ * @property {number} hours - Hours worked (required, positive, max 24, 2 decimal precision)
+ * @property {string} [description] - Optional work description (max 1000 characters, trimmed)
+ * @property {string} date - Date of work entry (required, ISO 8601 format)
+ * 
+ * @example
+ * const { error, value } = workEntrySchema.validate({
+ *   clientId: 1,
+ *   hours: 2.5,
+ *   description: 'Backend API development',
+ *   date: '2024-01-15'
+ * });
+ */
 const workEntrySchema = Joi.object({
   clientId: Joi.number().integer().positive().required(),
   hours: Joi.number().positive().max(24).precision(2).required(),
@@ -12,18 +49,58 @@ const workEntrySchema = Joi.object({
   date: Joi.date().iso().required()
 });
 
+/**
+ * Validation schema for updating an existing work entry.
+ * At least one field must be provided for a valid update.
+ * 
+ * @type {Joi.ObjectSchema}
+ * @property {number} [clientId] - New client ID (positive integer)
+ * @property {number} [hours] - Updated hours (positive, max 24, 2 decimal precision)
+ * @property {string} [description] - Updated description (max 1000 characters, trimmed)
+ * @property {string} [date] - Updated date (ISO 8601 format)
+ * 
+ * @example
+ * const { error, value } = updateWorkEntrySchema.validate({
+ *   hours: 3.0,
+ *   description: 'Updated: Backend API development and testing'
+ * });
+ */
 const updateWorkEntrySchema = Joi.object({
   clientId: Joi.number().integer().positive().optional(),
   hours: Joi.number().positive().max(24).precision(2).optional(),
   description: Joi.string().trim().max(1000).optional().allow(''),
   date: Joi.date().iso().optional()
-}).min(1); // At least one field must be provided
+}).min(1);
 
+/**
+ * Validation schema for updating an existing client.
+ * At least one field must be provided for a valid update.
+ * 
+ * @type {Joi.ObjectSchema}
+ * @property {string} [name] - Updated client name (1-255 characters, trimmed)
+ * @property {string} [description] - Updated description (max 1000 characters, trimmed)
+ * 
+ * @example
+ * const { error, value } = updateClientSchema.validate({
+ *   name: 'Acme Corp International'
+ * });
+ */
 const updateClientSchema = Joi.object({
   name: Joi.string().trim().min(1).max(255).optional(),
   description: Joi.string().trim().max(1000).optional().allow('')
-}).min(1); // At least one field must be provided
+}).min(1);
 
+/**
+ * Validation schema for email-based authentication requests.
+ * 
+ * @type {Joi.ObjectSchema}
+ * @property {string} email - User email address (required, valid email format)
+ * 
+ * @example
+ * const { error, value } = emailSchema.validate({
+ *   email: 'user@example.com'
+ * });
+ */
 const emailSchema = Joi.object({
   email: Joi.string().email().required()
 });
