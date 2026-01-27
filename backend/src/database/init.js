@@ -1,8 +1,35 @@
+/**
+ * @fileoverview Database initialization and management for the Billable Hours Tracker API.
+ * Provides SQLite database connection, schema creation, and lifecycle management.
+ * Uses an in-memory database for development/demo purposes.
+ * @module database/init
+ */
+
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
+/**
+ * Singleton database instance.
+ * @type {sqlite3.Database|null}
+ * @private
+ */
 let db = null;
 
+/**
+ * Gets or creates the SQLite database connection.
+ * Uses a singleton pattern to ensure only one database connection exists.
+ * The database runs in-memory mode, meaning all data is lost on server restart.
+ * 
+ * @function getDatabase
+ * @returns {sqlite3.Database} The SQLite database instance
+ * @throws {Error} If database connection fails
+ * 
+ * @example
+ * const db = getDatabase();
+ * db.all('SELECT * FROM users', [], (err, rows) => {
+ *   // Handle results
+ * });
+ */
 function getDatabase() {
   if (!db) {
     // Use in-memory database as specified in requirements
@@ -17,12 +44,30 @@ function getDatabase() {
   return db;
 }
 
+/**
+ * Initializes the database schema by creating all required tables and indexes.
+ * Creates the following tables:
+ * - users: Stores user accounts (email-based identification)
+ * - clients: Stores client records with user ownership
+ * - work_entries: Stores billable time entries linked to clients and users
+ * 
+ * Also creates performance indexes on frequently queried columns.
+ * 
+ * @async
+ * @function initializeDatabase
+ * @returns {Promise<void>} Resolves when all tables and indexes are created
+ * @throws {Error} If table creation fails
+ * 
+ * @example
+ * await initializeDatabase();
+ * console.log('Database ready');
+ */
 async function initializeDatabase() {
   const database = getDatabase();
   
   return new Promise((resolve, reject) => {
     database.serialize(() => {
-      // Create users table
+      // Create users table - stores user accounts with email as primary key
       database.run(`
         CREATE TABLE IF NOT EXISTS users (
           email TEXT PRIMARY KEY,
@@ -30,7 +75,7 @@ async function initializeDatabase() {
         )
       `);
 
-      // Create clients table
+      // Create clients table - stores client records owned by users
       database.run(`
         CREATE TABLE IF NOT EXISTS clients (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,7 +88,7 @@ async function initializeDatabase() {
         )
       `);
 
-      // Create work_entries table
+      // Create work_entries table - stores billable time entries
       database.run(`
         CREATE TABLE IF NOT EXISTS work_entries (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,7 +104,7 @@ async function initializeDatabase() {
         )
       `);
 
-      // Create indexes for better performance
+      // Create indexes for better query performance
       database.run(`CREATE INDEX IF NOT EXISTS idx_clients_user_email ON clients (user_email)`);
       database.run(`CREATE INDEX IF NOT EXISTS idx_work_entries_client_id ON work_entries (client_id)`);
       database.run(`CREATE INDEX IF NOT EXISTS idx_work_entries_user_email ON work_entries (user_email)`);
@@ -71,6 +116,21 @@ async function initializeDatabase() {
   });
 }
 
+/**
+ * Closes the database connection and releases resources.
+ * Sets the singleton instance to null to allow reconnection if needed.
+ * Safe to call multiple times - does nothing if database is already closed.
+ * 
+ * @function closeDatabase
+ * @returns {void}
+ * 
+ * @example
+ * // Graceful shutdown
+ * process.on('SIGTERM', () => {
+ *   closeDatabase();
+ *   process.exit(0);
+ * });
+ */
 function closeDatabase() {
   if (db) {
     db.close((err) => {
