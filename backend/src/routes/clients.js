@@ -1,14 +1,26 @@
+/**
+ * @module routes/clients
+ * @description CRUD route handlers for client management.
+ * Every route is protected by {@link module:middleware/auth.authenticateUser}
+ * and scoped to the authenticated user's own clients.
+ * Mounted at `/api/clients`.
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
 const { clientSchema, updateClientSchema } = require('../validation/schemas');
 
+/** @type {import('express').Router} */
 const router = express.Router();
 
-// All routes require authentication
 router.use(authenticateUser);
 
-// Get all clients for authenticated user
+/**
+ * @route GET /api/clients
+ * @description Retrieves all clients belonging to the authenticated user, ordered alphabetically by name.
+ * @returns {{ clients: Array<{ id: number, name: string, description: string|null, created_at: string, updated_at: string }> }}
+ */
 router.get('/', (req, res) => {
   const db = getDatabase();
   
@@ -26,7 +38,13 @@ router.get('/', (req, res) => {
   );
 });
 
-// Get specific client
+/**
+ * @route GET /api/clients/:id
+ * @description Retrieves a single client by its numeric ID.
+ * Returns 404 if the client does not exist or does not belong to the authenticated user.
+ * @param {string} req.params.id - The client's numeric ID.
+ * @returns {{ client: { id: number, name: string, description: string|null, created_at: string, updated_at: string } }}
+ */
 router.get('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
   
@@ -54,7 +72,14 @@ router.get('/:id', (req, res) => {
   );
 });
 
-// Create new client
+/**
+ * @route POST /api/clients
+ * @description Creates a new client for the authenticated user.
+ * The request body is validated against {@link module:validation/schemas.clientSchema}.
+ * @body {string} name - Required client name.
+ * @body {string} [description] - Optional client description.
+ * @returns {{ message: string, client: object }} 201 on success.
+ */
 router.post('/', (req, res, next) => {
   try {
     const { error, value } = clientSchema.validate(req.body);
@@ -97,7 +122,16 @@ router.post('/', (req, res, next) => {
   }
 });
 
-// Update client
+/**
+ * @route PUT /api/clients/:id
+ * @description Partially updates an existing client. Only provided fields are modified;
+ * the `updated_at` timestamp is refreshed automatically.
+ * Validated against {@link module:validation/schemas.updateClientSchema}.
+ * @param {string} req.params.id - The client's numeric ID.
+ * @body {string} [name] - New client name.
+ * @body {string} [description] - New client description.
+ * @returns {{ message: string, client: object }}
+ */
 router.put('/:id', (req, res, next) => {
   try {
     const clientId = parseInt(req.params.id);
@@ -176,7 +210,13 @@ router.put('/:id', (req, res, next) => {
   }
 });
 
-// Delete client
+/**
+ * @route DELETE /api/clients/:id
+ * @description Deletes a client and all of its associated work entries (via CASCADE).
+ * Returns 404 if the client does not exist or does not belong to the authenticated user.
+ * @param {string} req.params.id - The client's numeric ID.
+ * @returns {{ message: string }}
+ */
 router.delete('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
   
