@@ -1,6 +1,33 @@
+/**
+ * @fileoverview Authentication middleware for the Time Tracking API.
+ *
+ * Implements a simple email-based authentication scheme where the caller
+ * provides their email address via the `x-user-email` HTTP header. If the
+ * email belongs to an existing user the request proceeds; otherwise a new
+ * user record is created automatically before continuing.
+ *
+ * @module middleware/auth
+ * @requires database/init
+ */
+
 const { getDatabase } = require('../database/init');
 
-// Simple email-based authentication middleware
+/**
+ * Express middleware that authenticates incoming requests by inspecting the
+ * `x-user-email` header.
+ *
+ * Validation steps:
+ * 1. Ensures the header is present (returns 401 if missing).
+ * 2. Validates the email format with a basic regex (returns 400 if invalid).
+ * 3. Looks up the user in the database; creates the user if not found.
+ * 4. Attaches the verified email to `req.userEmail` for downstream handlers.
+ *
+ * @function authenticateUser
+ * @param {import('express').Request} req  - Express request object
+ * @param {import('express').Response} res - Express response object
+ * @param {import('express').NextFunction} next - Express next middleware function
+ * @returns {void}
+ */
 function authenticateUser(req, res, next) {
   const userEmail = req.headers['x-user-email'];
   

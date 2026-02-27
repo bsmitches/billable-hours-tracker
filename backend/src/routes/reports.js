@@ -1,3 +1,20 @@
+/**
+ * @fileoverview Report generation and export route handlers.
+ *
+ * Provides endpoints for viewing per-client hourly reports and exporting them
+ * as CSV or PDF files. All routes are protected by the
+ * {@link module:middleware/auth|authenticateUser} middleware.
+ *
+ * @module routes/reports
+ * @requires express
+ * @requires database/init
+ * @requires middleware/auth
+ * @requires csv-writer
+ * @requires pdfkit
+ * @requires path
+ * @requires fs
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
@@ -6,12 +23,25 @@ const PDFDocument = require('pdfkit');
 const path = require('path');
 const fs = require('fs');
 
+/** @type {import('express').Router} */
 const router = express.Router();
 
 // All routes require authentication
 router.use(authenticateUser);
 
-// Get hourly report for specific client
+/**
+ * GET /api/reports/client/:clientId
+ *
+ * Generates a JSON report for the specified client containing all work
+ * entries, total hours, and entry count.
+ *
+ * @name GetClientReport
+ * @function
+ * @param {string} req.params.clientId - Client ID
+ * @returns {Object} 200 - `{ client: { id, name }, workEntries, totalHours, entryCount }`
+ * @returns {Object} 400 - Invalid client ID
+ * @returns {Object} 404 - Client not found
+ */
 router.get('/client/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
@@ -63,7 +93,20 @@ router.get('/client/:clientId', (req, res) => {
   );
 });
 
-// Export client report as CSV
+/**
+ * GET /api/reports/export/csv/:clientId
+ *
+ * Exports the client's work entries as a downloadable CSV file. The file
+ * includes Date, Hours, Description, and Created At columns. A temporary
+ * file is written to disk, streamed to the client, and then deleted.
+ *
+ * @name ExportClientCSV
+ * @function
+ * @param {string} req.params.clientId - Client ID
+ * @returns {File} 200 - CSV file download
+ * @returns {Object} 400 - Invalid client ID
+ * @returns {Object} 404 - Client not found
+ */
 router.get('/export/csv/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
@@ -146,7 +189,20 @@ router.get('/export/csv/:clientId', (req, res) => {
   );
 });
 
-// Export client report as PDF
+/**
+ * GET /api/reports/export/pdf/:clientId
+ *
+ * Exports the client's work entries as a downloadable PDF document. The PDF
+ * contains a title, summary statistics, and a tabular listing of all entries.
+ * The document is streamed directly to the response.
+ *
+ * @name ExportClientPDF
+ * @function
+ * @param {string} req.params.clientId - Client ID
+ * @returns {File} 200 - PDF file download
+ * @returns {Object} 400 - Invalid client ID
+ * @returns {Object} 404 - Client not found
+ */
 router.get('/export/pdf/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
