@@ -1,3 +1,22 @@
+/**
+ * @fileoverview Dashboard page component for the Billable Hours Tracker.
+ * 
+ * This page provides an overview of the user's time tracking data including:
+ * - Summary statistics cards (total clients, work entries, hours)
+ * - Recent work entries list
+ * - Quick action buttons for common tasks
+ * 
+ * Data is fetched using React Query for automatic caching and refetching.
+ * 
+ * @module pages/DashboardPage
+ * @requires react - React library for UI components
+ * @requires @mui/material - Material-UI component library
+ * @requires @mui/icons-material - Material-UI icons
+ * @requires react-router-dom - Client-side routing
+ * @requires @tanstack/react-query - Server-side state management
+ * @requires ../api/client - API client for data fetching
+ */
+
 import React from 'react';
 import {
   Grid,
@@ -18,6 +37,12 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/client';
 
+/**
+ * Dashboard page component.
+ * Displays overview metrics, recent entries, and quick actions.
+ * 
+ * @returns {JSX.Element} Dashboard with stats cards and recent activity
+ */
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
 

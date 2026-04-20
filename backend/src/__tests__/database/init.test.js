@@ -1,7 +1,26 @@
+/**
+ * @fileoverview Unit tests for the database initialization module.
+ * 
+ * This test suite verifies the functionality of the database module including:
+ * - Database connection management (singleton pattern)
+ * - Schema initialization (tables and indexes)
+ * - Connection closing and cleanup
+ * - Database schema structure validation
+ * 
+ * Tests use a mocked sqlite3 module to avoid actual database operations
+ * and enable fast, isolated unit testing.
+ * 
+ * @module __tests__/database/init.test
+ * @requires ../../database/init - Module under test
+ */
+
 const sqlite3 = require('sqlite3');
 const { getDatabase, initializeDatabase, closeDatabase } = require('../../database/init');
 
-// Mock sqlite3
+/**
+ * Mock implementation of sqlite3 module.
+ * Provides a mock database object with Jest mock functions for all operations.
+ */
 jest.mock('sqlite3', () => {
   const mockDatabase = {
     serialize: jest.fn((callback) => callback()),

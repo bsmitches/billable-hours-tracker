@@ -1,3 +1,26 @@
+/**
+ * @fileoverview Reports page for the Billable Hours Tracker.
+ * 
+ * This page provides report generation and export functionality:
+ * - Client selection dropdown to choose report subject
+ * - Summary statistics cards (total hours, entry count, average)
+ * - Detailed work entries table for selected client
+ * - Export to CSV and PDF formats
+ * 
+ * Features:
+ * - Conditional data fetching based on client selection
+ * - File download handling for CSV and PDF exports
+ * - Loading states during data fetching
+ * 
+ * @module pages/ReportsPage
+ * @requires react - React library for UI components
+ * @requires @mui/material - Material-UI component library
+ * @requires @mui/icons-material - Material-UI icons
+ * @requires @tanstack/react-query - Server-side state management
+ * @requires ../api/client - API client for report generation
+ * @requires ../types/api - TypeScript type definitions
+ */
+
 import React, { useState } from 'react';
 import {
   Box,
@@ -31,6 +54,12 @@ import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/client';
 import { type ClientReport } from '../types/api';
 
+/**
+ * Reports page component.
+ * Provides client report generation and export functionality.
+ * 
+ * @returns {JSX.Element} Report viewer with client selection and export options
+ */
 const ReportsPage: React.FC = () => {
   const [selectedClientId, setSelectedClientId] = useState<number>(0);
   const [error, setError] = useState('');

@@ -1,8 +1,30 @@
+/**
+ * @fileoverview Integration tests for the client management routes.
+ * 
+ * This test suite verifies the functionality of the client API endpoints including:
+ * - GET /api/clients - List all clients
+ * - GET /api/clients/:id - Get specific client
+ * - POST /api/clients - Create new client
+ * - PUT /api/clients/:id - Update existing client
+ * - DELETE /api/clients/:id - Delete client
+ * 
+ * Tests cover CRUD operations, validation, authorization, and error handling.
+ * Uses supertest for HTTP assertions and mocked database/auth for isolation.
+ * 
+ * @module __tests__/routes/clients.test
+ * @requires supertest - HTTP assertion library
+ * @requires ../../routes/clients - Routes under test
+ * @requires ../../database/init - Mocked database module
+ */
+
 const request = require('supertest');
 const express = require('express');
 const clientRoutes = require('../../routes/clients');
 const { getDatabase } = require('../../database/init');
 
+/**
+ * Mock the database initialization module to provide controlled test behavior.
+ */
 jest.mock('../../database/init');
 jest.mock('../../middleware/auth', () => ({
   authenticateUser: (req, res, next) => {

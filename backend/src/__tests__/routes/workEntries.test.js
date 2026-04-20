@@ -1,8 +1,30 @@
+/**
+ * @fileoverview Integration tests for the work entry management routes.
+ * 
+ * This test suite verifies the functionality of the work entry API endpoints including:
+ * - GET /api/work-entries - List all work entries (with optional client filter)
+ * - GET /api/work-entries/:id - Get specific work entry
+ * - POST /api/work-entries - Create new work entry
+ * - PUT /api/work-entries/:id - Update existing work entry
+ * - DELETE /api/work-entries/:id - Delete work entry
+ * 
+ * Tests cover CRUD operations, client ownership validation, and error handling.
+ * Uses supertest for HTTP assertions and mocked database/auth for isolation.
+ * 
+ * @module __tests__/routes/workEntries.test
+ * @requires supertest - HTTP assertion library
+ * @requires ../../routes/workEntries - Routes under test
+ * @requires ../../database/init - Mocked database module
+ */
+
 const request = require('supertest');
 const express = require('express');
 const workEntryRoutes = require('../../routes/workEntries');
 const { getDatabase } = require('../../database/init');
 
+/**
+ * Mock the database initialization module to provide controlled test behavior.
+ */
 jest.mock('../../database/init');
 jest.mock('../../middleware/auth', () => ({
   authenticateUser: (req, res, next) => {

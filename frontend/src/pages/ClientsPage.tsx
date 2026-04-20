@@ -1,3 +1,24 @@
+/**
+ * @fileoverview Client management page for the Billable Hours Tracker.
+ * 
+ * This page provides full CRUD functionality for managing clients:
+ * - View all clients in a table format
+ * - Create new clients via modal dialog
+ * - Edit existing clients
+ * - Delete clients (with confirmation)
+ * 
+ * Uses React Query for data fetching and mutations with automatic
+ * cache invalidation on successful operations.
+ * 
+ * @module pages/ClientsPage
+ * @requires react - React library for UI components
+ * @requires @mui/material - Material-UI component library
+ * @requires @mui/icons-material - Material-UI icons
+ * @requires @tanstack/react-query - Server-side state management
+ * @requires ../api/client - API client for CRUD operations
+ * @requires ../types/api - TypeScript type definitions
+ */
+
 import React, { useState } from 'react';
 import {
   Box,
@@ -29,6 +50,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/client';
 import { type Client } from '../types/api';
 
+/**
+ * Client management page component.
+ * Provides CRUD interface for managing billable clients.
+ * 
+ * @returns {JSX.Element} Client list table with add/edit/delete functionality
+ */
 const ClientsPage: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
