@@ -1,11 +1,27 @@
+/**
+ * @module routes/auth
+ * @description Authentication route handlers.
+ * Provides login (with automatic registration) and a "current user" endpoint.
+ * Mounted at `/api/auth`.
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { emailSchema } = require('../validation/schemas');
 const { authenticateUser } = require('../middleware/auth');
 
+/** @type {import('express').Router} */
 const router = express.Router();
 
-// Login endpoint - creates user if doesn't exist
+/**
+ * @route POST /api/auth/login
+ * @description Logs a user in by email. If no account exists for the given
+ * email address a new user row is created automatically (201). Existing users
+ * receive a 200 with their profile data. The request body is validated against
+ * {@link module:validation/schemas.emailSchema}.
+ * @body {string} email - A valid email address.
+ * @returns {{ message: string, user: { email: string, createdAt: string } }}
+ */
 router.post('/login', async (req, res, next) => {
   try {
     const { error, value } = emailSchema.validate(req.body);
@@ -16,7 +32,6 @@ router.post('/login', async (req, res, next) => {
     const { email } = value;
     const db = getDatabase();
 
-    // Check if user exists
     db.get('SELECT email, created_at FROM users WHERE email = ?', [email], (err, row) => {
       if (err) {
         console.error('Database error:', err);
@@ -24,7 +39,6 @@ router.post('/login', async (req, res, next) => {
       }
 
       if (row) {
-        // User exists
         return res.json({
           message: 'Login successful',
           user: {
@@ -33,7 +47,6 @@ router.post('/login', async (req, res, next) => {
           }
         });
       } else {
-        // Create new user
         db.run('INSERT INTO users (email) VALUES (?)', [email], function(err) {
           if (err) {
             console.error('Error creating user:', err);
@@ -55,7 +68,12 @@ router.post('/login', async (req, res, next) => {
   }
 });
 
-// Get current user info
+/**
+ * @route GET /api/auth/me
+ * @description Returns the profile of the currently authenticated user.
+ * Requires the `x-user-email` header (handled by {@link module:middleware/auth.authenticateUser}).
+ * @returns {{ user: { email: string, createdAt: string } }}
+ */
 router.get('/me', authenticateUser, (req, res) => {
   const db = getDatabase();
   

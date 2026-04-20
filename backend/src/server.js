@@ -1,3 +1,10 @@
+/**
+ * @module server
+ * @description Express application entry point for the Billable Hours Tracker API.
+ * Configures middleware (security, rate limiting, logging, body parsing),
+ * mounts route handlers, and starts the HTTP server after initializing the database.
+ */
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -12,50 +19,63 @@ const reportRoutes = require('./routes/reports');
 const { initializeDatabase } = require('./database/init');
 const { errorHandler } = require('./middleware/errorHandler');
 
+/** @type {import('express').Application} */
 const app = express();
+
+/** @type {number} Server port, defaults to 3001 if PORT env var is not set. */
 const PORT = process.env.PORT || 3001;
 
-// Security middleware
 app.use(helmet());
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true
 }));
 
-// Rate limiting
+/**
+ * @description Rate limiter that restricts each IP to 100 requests per 15-minute window.
+ * @type {import('express').RequestHandler}
+ */
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100 // limit each IP to 100 requests per windowMs
 });
 app.use(limiter);
 
-// Logging
 app.use(morgan('combined'));
 
-// Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Health check
+/**
+ * @route GET /health
+ * @description Returns a 200 status with an OK message and the current server timestamp.
+ * Useful for load-balancer and uptime-monitor health probes.
+ */
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/work-entries', workEntryRoutes);
 app.use('/api/reports', reportRoutes);
 
-// Error handling
 app.use(errorHandler);
 
-// 404 handler
+/**
+ * @description Catch-all handler for unmatched routes. Returns a 404 JSON response.
+ */
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-// Initialize database and start server
+/**
+ * @async
+ * @function startServer
+ * @description Initializes the SQLite database and starts the Express HTTP server.
+ * Exits the process with code 1 if database initialization fails.
+ * @returns {Promise<void>}
+ */
 async function startServer() {
   try {
     await initializeDatabase();
