@@ -1,5 +1,5 @@
 const express = require('express');
-const { getDatabase } = require('../database/init');
+const { getDatabase, sql } = require('../database/init');
 const { emailSchema } = require('../validation/schemas');
 const { authenticateUser } = require('../middleware/auth');
 
@@ -14,68 +14,68 @@ router.post('/login', async (req, res, next) => {
     }
 
     const { email } = value;
-    const db = getDatabase();
+    const pool = await getDatabase();
 
     // Check if user exists
-    db.get('SELECT email, created_at FROM users WHERE email = ?', [email], (err, row) => {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({ error: 'Internal server error' });
-      }
+    const result = await pool.request()
+      .input('email', sql.VarChar, email)
+      .query('SELECT email, created_at FROM users WHERE email = @email');
 
-      if (row) {
-        // User exists
-        return res.json({
-          message: 'Login successful',
-          user: {
-            email: row.email,
-            createdAt: row.created_at
-          }
-        });
-      } else {
-        // Create new user
-        db.run('INSERT INTO users (email) VALUES (?)', [email], function(err) {
-          if (err) {
-            console.error('Error creating user:', err);
-            return res.status(500).json({ error: 'Failed to create user' });
-          }
+    if (result.recordset.length > 0) {
+      // User exists
+      return res.json({
+        message: 'Login successful',
+        user: {
+          email: result.recordset[0].email,
+          createdAt: result.recordset[0].created_at
+        }
+      });
+    } else {
+      // Create new user
+      await pool.request()
+        .input('email', sql.VarChar, email)
+        .query('INSERT INTO users (email) VALUES (@email)');
 
-          res.status(201).json({
-            message: 'User created and logged in successfully',
-            user: {
-              email: email,
-              createdAt: new Date().toISOString()
-            }
-          });
-        });
-      }
-    });
+      res.status(201).json({
+        message: 'User created and logged in successfully',
+        user: {
+          email: email,
+          createdAt: new Date().toISOString()
+        }
+      });
+    }
   } catch (error) {
-    next(error);
+    console.error('Database error:', error);
+    if (error.isJoi) {
+      return next(error);
+    }
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Get current user info
-router.get('/me', authenticateUser, (req, res) => {
-  const db = getDatabase();
-  
-  db.get('SELECT email, created_at FROM users WHERE email = ?', [req.userEmail], (err, row) => {
-    if (err) {
-      console.error('Database error:', err);
-      return res.status(500).json({ error: 'Internal server error' });
-    }
+router.get('/me', authenticateUser, async (req, res) => {
+  try {
+    const pool = await getDatabase();
+    
+    const result = await pool.request()
+      .input('email', sql.VarChar, req.userEmail)
+      .query('SELECT email, created_at FROM users WHERE email = @email');
 
-    if (!row) {
+    if (result.recordset.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
 
     res.json({
       user: {
-        email: row.email,
-        createdAt: row.created_at
+        email: result.recordset[0].email,
+        createdAt: result.recordset[0].created_at
       }
     });
-  });
+  } catch (err) {
+    console.error('Database error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 module.exports = router;

@@ -23,19 +23,21 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "pdfkit": "^0.13.0",
-    "sqlite3": "^5.1.6"
+    "mssql": "^9.1.1",
+    "dotenv": "^16.3.1"
   },
   "devDependencies": {
     "jest": "^29.7.0",
     "nodemon": "^3.0.2",
     "supertest": "^6.3.3"
   },
-  "keywords": [
-    "time-tracking",
-    "express",
-    "sqlite",
-    "api"
-  ],
+    "keywords": [
+      "time-tracking",
+      "express",
+      "sqlserver",
+      "mssql",
+      "api"
+    ],
   "author": "",
   "license": "MIT"
 }

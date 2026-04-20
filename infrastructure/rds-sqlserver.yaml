@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'RDS SQL Server for Time Tracking App'
+
+Parameters:
+  DBInstanceIdentifier:
+    Type: String
+    Default: 'timetracker-sqlserver'
+  DBName:
+    Type: String
+    Default: 'timetracker'
+  DBUsername:
+    Type: String
+    Description: 'Master username for the database (avoid using default names like admin)'
+  DBPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+  AppSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: 'Security group ID of the application servers that need database access'
+
+Resources:
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: 'Subnet group for RDS SQL Server'
+      SubnetIds: !Ref SubnetIds
+
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Security group for RDS SQL Server'
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 1433
+          ToPort: 1433
+          SourceSecurityGroupId: !Ref AppSecurityGroupId
+
+  DatabaseInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: !Ref DBInstanceIdentifier
+      DBInstanceClass: 'db.t3.micro'
+      Engine: 'sqlserver-ex'
+      EngineVersion: '15.00'
+      AllocatedStorage: 20
+      StorageType: 'gp2'
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - !Ref DBSecurityGroup
+      BackupRetentionPeriod: 7
+      MultiAZ: false
+      StorageEncrypted: true
+      PubliclyAccessible: false
+    DeletionPolicy: Snapshot
+
+Outputs:
+  DBEndpoint:
+    Description: 'RDS SQL Server endpoint'
+    Value: !GetAtt DatabaseInstance.Endpoint.Address
+  DBPort:
+    Description: 'RDS SQL Server port'
+    Value: !GetAtt DatabaseInstance.Endpoint.Port
