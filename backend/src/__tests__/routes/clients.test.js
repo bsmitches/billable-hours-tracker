@@ -39,10 +39,10 @@ describe('Client Routes', () => {
   });
 
   describe('GET /api/clients', () => {
-    test('should return all clients for authenticated user', async () => {
+    test('should return all clients (shared across users)', async () => {
       const mockClients = [
-        { id: 1, name: 'Client A', description: 'Desc A', created_at: '2024-01-01', updated_at: '2024-01-01' },
-        { id: 2, name: 'Client B', description: 'Desc B', created_at: '2024-01-02', updated_at: '2024-01-02' }
+        { id: 1, name: 'Client A', description: 'Desc A', created_by_email: 'test@example.com', created_at: '2024-01-01', updated_at: '2024-01-01' },
+        { id: 2, name: 'Client B', description: 'Desc B', created_by_email: 'other@example.com', created_at: '2024-01-02', updated_at: '2024-01-02' }
       ];
 
       mockDb.all.mockImplementation((query, params, callback) => {
@@ -55,7 +55,7 @@ describe('Client Routes', () => {
       expect(response.body).toEqual({ clients: mockClients });
       expect(mockDb.all).toHaveBeenCalledWith(
         expect.stringContaining('SELECT id, name, description'),
-        ['test@example.com'],
+        [],
         expect.any(Function)
       );
     });
@@ -130,16 +130,17 @@ describe('Client Routes', () => {
   describe('POST /api/clients', () => {
     test('should create new client with valid data', async () => {
       const newClient = { name: 'New Client', description: 'New Description' };
-      const createdClient = { id: 1, ...newClient, created_at: '2024-01-01', updated_at: '2024-01-01' };
+      const createdClient = { id: 1, ...newClient, created_by_email: 'test@example.com', created_at: '2024-01-01', updated_at: '2024-01-01' };
 
       mockDb.run.mockImplementation(function(query, params, callback) {
         this.lastID = 1;
         callback.call(this, null);
       });
 
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, createdClient);
-      });
+      // First call: duplicate check (no existing client), second call: retrieve created client
+      mockDb.get
+        .mockImplementationOnce((query, params, callback) => callback(null, null))
+        .mockImplementationOnce((query, params, callback) => callback(null, createdClient));
 
       const response = await request(app)
         .post('/api/clients')
@@ -152,16 +153,17 @@ describe('Client Routes', () => {
 
     test('should create client without description', async () => {
       const newClient = { name: 'Client Without Desc' };
-      const createdClient = { id: 1, name: 'Client Without Desc', description: null };
+      const createdClient = { id: 1, name: 'Client Without Desc', description: null, created_by_email: 'test@example.com' };
 
       mockDb.run.mockImplementation(function(query, params, callback) {
         this.lastID = 1;
         callback.call(this, null);
       });
 
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, createdClient);
-      });
+      // First call: duplicate check (no existing client), second call: retrieve created client
+      mockDb.get
+        .mockImplementationOnce((query, params, callback) => callback(null, null))
+        .mockImplementationOnce((query, params, callback) => callback(null, createdClient));
 
       const response = await request(app)
         .post('/api/clients')
@@ -186,7 +188,23 @@ describe('Client Routes', () => {
       expect(response.status).toBe(400);
     });
 
+    test('should return 409 if client name already exists', async () => {
+      mockDb.get.mockImplementationOnce((query, params, callback) => {
+        callback(null, { id: 1 }); // Client with same name exists
+      });
+
+      const response = await request(app)
+        .post('/api/clients')
+        .send({ name: 'Existing Client' });
+
+      expect(response.status).toBe(409);
+      expect(response.body).toEqual({ error: 'A client with this name already exists' });
+    });
+
     test('should handle database insert error', async () => {
+      // First call: duplicate check (no existing client)
+      mockDb.get.mockImplementationOnce((query, params, callback) => callback(null, null));
+
       mockDb.run.mockImplementation((query, params, callback) => {
         callback(new Error('Insert failed'));
       });
