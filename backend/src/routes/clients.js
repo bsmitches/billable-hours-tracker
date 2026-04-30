@@ -8,13 +8,13 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticateUser);
 
-// Get all clients for authenticated user
+// Get all clients (shared across all employees)
 router.get('/', (req, res) => {
   const db = getDatabase();
   
   db.all(
-    'SELECT id, name, description, created_at, updated_at FROM clients WHERE user_email = ? ORDER BY name',
-    [req.userEmail],
+    'SELECT id, name, description, user_email as created_by, created_at, updated_at FROM clients ORDER BY name',
+    [],
     (err, rows) => {
       if (err) {
         console.error('Database error:', err);
@@ -26,7 +26,7 @@ router.get('/', (req, res) => {
   );
 });
 
-// Get specific client
+// Get specific client (visible to all employees)
 router.get('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
   
@@ -37,8 +37,8 @@ router.get('/:id', (req, res) => {
   const db = getDatabase();
   
   db.get(
-    'SELECT id, name, description, created_at, updated_at FROM clients WHERE id = ? AND user_email = ?',
-    [clientId, req.userEmail],
+    'SELECT id, name, description, user_email as created_by, created_at, updated_at FROM clients WHERE id = ?',
+    [clientId],
     (err, row) => {
       if (err) {
         console.error('Database error:', err);
@@ -65,29 +65,45 @@ router.post('/', (req, res, next) => {
     const { name, description } = value;
     const db = getDatabase();
 
-    db.run(
-      'INSERT INTO clients (name, description, user_email) VALUES (?, ?, ?)',
-      [name, description || null, req.userEmail],
-      function(err) {
+    // Check if a client with the same name already exists
+    db.get(
+      'SELECT id, name, description, user_email as created_by, created_at, updated_at FROM clients WHERE name = ? COLLATE NOCASE',
+      [name],
+      (err, existing) => {
         if (err) {
           console.error('Database error:', err);
-          return res.status(500).json({ error: 'Failed to create client' });
+          return res.status(500).json({ error: 'Internal server error' });
         }
 
-        // Return the created client
-        db.get(
-          'SELECT id, name, description, created_at, updated_at FROM clients WHERE id = ?',
-          [this.lastID],
-          (err, row) => {
+        if (existing) {
+          return res.status(409).json({ error: 'A client with this name already exists', client: existing });
+        }
+
+        db.run(
+          'INSERT INTO clients (name, description, user_email) VALUES (?, ?, ?)',
+          [name, description || null, req.userEmail],
+          function(err) {
             if (err) {
               console.error('Database error:', err);
-              return res.status(500).json({ error: 'Client created but failed to retrieve' });
+              return res.status(500).json({ error: 'Failed to create client' });
             }
 
-            res.status(201).json({ 
-              message: 'Client created successfully',
-              client: row 
-            });
+            // Return the created client
+            db.get(
+              'SELECT id, name, description, user_email as created_by, created_at, updated_at FROM clients WHERE id = ?',
+              [this.lastID],
+              (err, row) => {
+                if (err) {
+                  console.error('Database error:', err);
+                  return res.status(500).json({ error: 'Client created but failed to retrieve' });
+                }
+
+                res.status(201).json({ 
+                  message: 'Client created successfully',
+                  client: row 
+                });
+              }
+            );
           }
         );
       }
