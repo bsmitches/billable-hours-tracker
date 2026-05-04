@@ -7,6 +7,7 @@ export interface Client {
   id: number;
   name: string;
   description: string | null;
+  user_email?: string;
   created_at: string;
   updated_at: string;
 }
