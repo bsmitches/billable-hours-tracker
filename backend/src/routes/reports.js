@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Report generation routes for the Billable Hours Tracker API.
+ * Provides endpoints for generating and exporting client time reports in various formats.
+ * @module routes/reports
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
@@ -6,12 +12,35 @@ const PDFDocument = require('pdfkit');
 const path = require('path');
 const fs = require('fs');
 
+/**
+ * Express router for report endpoints.
+ * All routes require authentication via x-user-email header.
+ * @type {express.Router}
+ */
 const router = express.Router();
 
 // All routes require authentication
 router.use(authenticateUser);
 
-// Get hourly report for specific client
+/**
+ * @route GET /api/reports/client/:clientId
+ * @description Generates a detailed hourly report for a specific client.
+ * Includes all work entries, total hours, and entry count.
+ * @param {string} req.params.clientId - Client ID (must be a valid integer)
+ * @param {string} req.headers['x-user-email'] - User's email for authentication
+ * @returns {Object} 200 - Report data with client info, work entries, and totals
+ * @returns {Object} 400 - Invalid client ID
+ * @returns {Object} 401 - Unauthorized
+ * @returns {Object} 404 - Client not found
+ * @returns {Object} 500 - Internal server error
+ * @example response - 200
+ * {
+ *   "client": { "id": 1, "name": "Acme Corp" },
+ *   "workEntries": [...],
+ *   "totalHours": 45.5,
+ *   "entryCount": 12
+ * }
+ */
 router.get('/client/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
@@ -63,7 +92,18 @@ router.get('/client/:clientId', (req, res) => {
   );
 });
 
-// Export client report as CSV
+/**
+ * @route GET /api/reports/export/csv/:clientId
+ * @description Exports a client's time report as a CSV file.
+ * The file includes date, hours, description, and created_at for each work entry.
+ * @param {string} req.params.clientId - Client ID (must be a valid integer)
+ * @param {string} req.headers['x-user-email'] - User's email for authentication
+ * @returns {File} 200 - CSV file download with Content-Disposition header
+ * @returns {Object} 400 - Invalid client ID
+ * @returns {Object} 401 - Unauthorized
+ * @returns {Object} 404 - Client not found
+ * @returns {Object} 500 - Internal server error or CSV generation failure
+ */
 router.get('/export/csv/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
@@ -146,7 +186,19 @@ router.get('/export/csv/:clientId', (req, res) => {
   );
 });
 
-// Export client report as PDF
+/**
+ * @route GET /api/reports/export/pdf/:clientId
+ * @description Exports a client's time report as a formatted PDF document.
+ * The PDF includes a title, summary statistics (total hours, entry count, generation date),
+ * and a table of all work entries with date, hours, and description.
+ * @param {string} req.params.clientId - Client ID (must be a valid integer)
+ * @param {string} req.headers['x-user-email'] - User's email for authentication
+ * @returns {File} 200 - PDF file download with Content-Type application/pdf
+ * @returns {Object} 400 - Invalid client ID
+ * @returns {Object} 401 - Unauthorized
+ * @returns {Object} 404 - Client not found
+ * @returns {Object} 500 - Internal server error
+ */
 router.get('/export/pdf/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   

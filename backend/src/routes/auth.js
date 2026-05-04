@@ -1,11 +1,43 @@
+/**
+ * @fileoverview Authentication routes for the Billable Hours Tracker API.
+ * Handles user login and current user information retrieval.
+ * @module routes/auth
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { emailSchema } = require('../validation/schemas');
 const { authenticateUser } = require('../middleware/auth');
 
+/**
+ * Express router for authentication endpoints.
+ * @type {express.Router}
+ */
 const router = express.Router();
 
-// Login endpoint - creates user if doesn't exist
+/**
+ * @route POST /api/auth/login
+ * @description Authenticates a user by email. Creates a new user if the email doesn't exist.
+ * This endpoint supports auto-registration for trusted internal networks.
+ * @param {Object} req.body - Request body
+ * @param {string} req.body.email - User's email address
+ * @returns {Object} 200 - Login successful with user data
+ * @returns {Object} 201 - New user created and logged in
+ * @returns {Object} 400 - Validation error (invalid email format)
+ * @returns {Object} 500 - Internal server error
+ * @example request
+ * {
+ *   "email": "user@example.com"
+ * }
+ * @example response - 200
+ * {
+ *   "message": "Login successful",
+ *   "user": {
+ *     "email": "user@example.com",
+ *     "createdAt": "2024-01-15T10:30:00.000Z"
+ *   }
+ * }
+ */
 router.post('/login', async (req, res, next) => {
   try {
     const { error, value } = emailSchema.validate(req.body);
@@ -55,7 +87,23 @@ router.post('/login', async (req, res, next) => {
   }
 });
 
-// Get current user info
+/**
+ * @route GET /api/auth/me
+ * @description Retrieves the current authenticated user's information.
+ * Requires authentication via x-user-email header.
+ * @param {string} req.headers['x-user-email'] - User's email for authentication
+ * @returns {Object} 200 - User information
+ * @returns {Object} 401 - Unauthorized (missing or invalid email header)
+ * @returns {Object} 404 - User not found
+ * @returns {Object} 500 - Internal server error
+ * @example response - 200
+ * {
+ *   "user": {
+ *     "email": "user@example.com",
+ *     "createdAt": "2024-01-15T10:30:00.000Z"
+ *   }
+ * }
+ */
 router.get('/me', authenticateUser, (req, res) => {
   const db = getDatabase();
   
