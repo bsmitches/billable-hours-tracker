@@ -1,6 +1,29 @@
+/**
+ * @fileoverview Authentication middleware for the billable hours tracker.
+ * Implements a simplified email-based authentication system designed for trusted internal networks.
+ * Automatically creates new users on first authentication attempt.
+ * 
+ * @module middleware/auth
+ */
+
 const { getDatabase } = require('../database/init');
 
-// Simple email-based authentication middleware
+/**
+ * Express middleware that authenticates users via email header.
+ * Validates the x-user-email header, checks email format, and auto-creates users if they don't exist.
+ * Sets req.userEmail for use in downstream route handlers.
+ * 
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ * @param {import('express').NextFunction} next - Express next middleware function
+ * @returns {void}
+ * 
+ * @example
+ * // Usage in route definition
+ * router.get('/protected', authenticateUser, (req, res) => {
+ *   console.log(req.userEmail); // User's email from header
+ * });
+ */
 function authenticateUser(req, res, next) {
   const userEmail = req.headers['x-user-email'];
   

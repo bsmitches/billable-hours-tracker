@@ -1,3 +1,26 @@
+/**
+ * @fileoverview Main Express server entry point for the Billable Hours Tracker API.
+ * Configures middleware stack, routes, and initializes the database.
+ * 
+ * @module server
+ * 
+ * @description
+ * Server configuration includes:
+ * - Security headers (Helmet)
+ * - CORS for frontend communication
+ * - Rate limiting for API protection
+ * - Request logging (Morgan)
+ * - JSON body parsing
+ * - Centralized error handling
+ * 
+ * API Routes:
+ * - /api/auth - Authentication endpoints
+ * - /api/clients - Client management
+ * - /api/work-entries - Work entry tracking
+ * - /api/reports - Report generation and export
+ * - /health - Health check endpoint
+ */
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -13,49 +36,66 @@ const { initializeDatabase } = require('./database/init');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
+
+/** @type {number} Server port from environment or default 3001 */
 const PORT = process.env.PORT || 3001;
 
-// Security middleware
+// Security middleware - sets various HTTP headers for protection
 app.use(helmet());
+
+// CORS configuration - allows frontend to communicate with API
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true
 }));
 
-// Rate limiting
+/**
+ * Rate limiter configuration to prevent API abuse.
+ * Limits each IP to 100 requests per 15-minute window.
+ * @type {import('express-rate-limit').RateLimitRequestHandler}
+ */
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100
 });
 app.use(limiter);
 
-// Logging
+// HTTP request logging in Apache combined format
 app.use(morgan('combined'));
 
-// Body parsing
+// Body parsing middleware with 10MB limit for JSON payloads
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Health check
+/**
+ * Health check endpoint for monitoring and load balancer probes.
+ * @route GET /health
+ * @returns {Object} 200 - Status OK with current timestamp
+ */
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Routes
+// API route mounting
 app.use('/api/auth', authRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/work-entries', workEntryRoutes);
 app.use('/api/reports', reportRoutes);
 
-// Error handling
+// Centralized error handling middleware
 app.use(errorHandler);
 
-// 404 handler
+// Catch-all 404 handler for undefined routes
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-// Initialize database and start server
+/**
+ * Initializes the database and starts the Express server.
+ * Exits with code 1 if initialization fails.
+ * @async
+ * @returns {Promise<void>}
+ */
 async function startServer() {
   try {
     await initializeDatabase();

@@ -1,8 +1,24 @@
+/**
+ * @fileoverview Database initialization and connection management module.
+ * Provides singleton access to an SQLite in-memory database for the billable hours tracker.
+ * Handles database creation, schema initialization, and connection lifecycle.
+ * 
+ * @module database/init
+ */
+
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
+/** @type {sqlite3.Database|null} Singleton database instance */
 let db = null;
 
+/**
+ * Gets or creates the singleton SQLite database instance.
+ * Uses an in-memory database for development/demo purposes.
+ * 
+ * @returns {sqlite3.Database} The SQLite database instance
+ * @throws {Error} If database connection fails
+ */
 function getDatabase() {
   if (!db) {
     // Use in-memory database as specified in requirements
@@ -17,6 +33,15 @@ function getDatabase() {
   return db;
 }
 
+/**
+ * Initializes the database schema by creating all required tables and indexes.
+ * Creates users, clients, and work_entries tables with appropriate foreign key relationships.
+ * Uses CASCADE delete to maintain referential integrity.
+ * 
+ * @async
+ * @returns {Promise<void>} Resolves when all tables and indexes are created
+ * @throws {Error} If table creation fails
+ */
 async function initializeDatabase() {
   const database = getDatabase();
   
@@ -71,6 +96,11 @@ async function initializeDatabase() {
   });
 }
 
+/**
+ * Closes the database connection gracefully.
+ * Resets the singleton instance to allow for reconnection if needed.
+ * Safe to call multiple times - will only close if connection exists.
+ */
 function closeDatabase() {
   if (db) {
     db.close((err) => {
