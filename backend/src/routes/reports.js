@@ -6,12 +6,47 @@ const PDFDocument = require('pdfkit');
 const path = require('path');
 const fs = require('fs');
 
+/**
+ * @fileoverview Report generation routes for client time tracking data.
+ * Provides endpoints to retrieve and export client-specific reports in
+ * JSON, CSV, and PDF formats. All routes require authentication.
+ * 
+ * @module routes/reports
+ */
+
 const router = express.Router();
 
-// All routes require authentication
 router.use(authenticateUser);
 
-// Get hourly report for specific client
+/**
+ * @route GET /api/reports/client/:clientId
+ * @description Generates a detailed time report for a specific client.
+ * Returns all work entries for the client along with aggregated statistics
+ * including total hours and entry count. The client must belong to the
+ * authenticated user.
+ * 
+ * @param {string} req.params.clientId - Client ID (must be a valid positive integer).
+ * @param {string} req.headers.x-user-email - Authenticated user's email address.
+ * 
+ * @returns {Object} 200 - Report generated successfully with client info, work entries, and totals.
+ * @returns {Object} 400 - Invalid client ID format.
+ * @returns {Object} 401 - Authentication required.
+ * @returns {Object} 404 - Client not found or does not belong to user.
+ * @returns {Object} 500 - Internal server error.
+ * 
+ * @example
+ * // Request
+ * GET /api/reports/client/1
+ * Headers: { "x-user-email": "user@example.com" }
+ * 
+ * // Response
+ * {
+ *   "client": { "id": 1, "name": "Acme Corp" },
+ *   "workEntries": [{ "id": 1, "hours": 2.5, "description": "...", "date": "2024-01-15" }],
+ *   "totalHours": 25.5,
+ *   "entryCount": 10
+ * }
+ */
 router.get('/client/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
@@ -63,7 +98,29 @@ router.get('/client/:clientId', (req, res) => {
   );
 });
 
-// Export client report as CSV
+/**
+ * @route GET /api/reports/export/csv/:clientId
+ * @description Exports a client's time report as a downloadable CSV file.
+ * The CSV includes columns for Date, Hours, Description, and Created At.
+ * The file is generated on-demand and cleaned up after download.
+ * 
+ * @param {string} req.params.clientId - Client ID (must be a valid positive integer).
+ * @param {string} req.headers.x-user-email - Authenticated user's email address.
+ * 
+ * @returns {File} 200 - CSV file download with Content-Disposition header.
+ * @returns {Object} 400 - Invalid client ID format.
+ * @returns {Object} 401 - Authentication required.
+ * @returns {Object} 404 - Client not found or does not belong to user.
+ * @returns {Object} 500 - Internal server error or CSV generation failure.
+ * 
+ * @example
+ * // Request
+ * GET /api/reports/export/csv/1
+ * Headers: { "x-user-email": "user@example.com" }
+ * 
+ * // Response: CSV file download
+ * // Filename: Acme_Corp_report_2024-01-15T10-30-00-000Z.csv
+ */
 router.get('/export/csv/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
@@ -146,7 +203,30 @@ router.get('/export/csv/:clientId', (req, res) => {
   );
 });
 
-// Export client report as PDF
+/**
+ * @route GET /api/reports/export/pdf/:clientId
+ * @description Exports a client's time report as a downloadable PDF document.
+ * The PDF includes a formatted header with client name, summary statistics
+ * (total hours, entry count, generation date), and a table of all work entries.
+ * Automatically handles pagination for reports with many entries.
+ * 
+ * @param {string} req.params.clientId - Client ID (must be a valid positive integer).
+ * @param {string} req.headers.x-user-email - Authenticated user's email address.
+ * 
+ * @returns {File} 200 - PDF file download with Content-Type: application/pdf header.
+ * @returns {Object} 400 - Invalid client ID format.
+ * @returns {Object} 401 - Authentication required.
+ * @returns {Object} 404 - Client not found or does not belong to user.
+ * @returns {Object} 500 - Internal server error or PDF generation failure.
+ * 
+ * @example
+ * // Request
+ * GET /api/reports/export/pdf/1
+ * Headers: { "x-user-email": "user@example.com" }
+ * 
+ * // Response: PDF file download
+ * // Filename: Acme_Corp_report_2024-01-15T10-30-00-000Z.pdf
+ */
 router.get('/export/pdf/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
