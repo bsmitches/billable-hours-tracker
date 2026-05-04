@@ -17,6 +17,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/client';
+import ActivityFeed, { type ActivityItem } from '../components/ActivityFeed';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -36,6 +37,17 @@ const DashboardPage: React.FC = () => {
 
   const totalHours = workEntries.reduce((sum: number, entry: { hours: number }) => sum + entry.hours, 0);
   const recentEntries = workEntries.slice(0, 5);
+
+  const activityItems: ActivityItem[] = workEntries.slice(0, 15).map(
+    (entry: { id: number; client_name: string; hours: number; date: string; description?: string }) => ({
+      id: entry.id,
+      clientName: entry.client_name,
+      hours: entry.hours,
+      date: entry.date,
+      description: entry.description || null,
+      type: 'entry' as const,
+    })
+  );
 
   const statsCards = [
     {
@@ -179,6 +191,15 @@ const DashboardPage: React.FC = () => {
           </Paper>
         </Grid>
       </Grid>
+
+      <Box sx={{ mt: 4 }}>
+        <ActivityFeed
+          items={activityItems}
+          title="Recent Activity"
+          maxItems={10}
+          showTrend={true}
+        />
+      </Box>
     </Box>
   );
 };

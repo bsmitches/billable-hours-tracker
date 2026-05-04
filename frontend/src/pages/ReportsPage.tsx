@@ -64,7 +64,6 @@ const ReportsPage: React.FC = () => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
       setError('Failed to export CSV report');
       console.error('Export error:', err);
     }
@@ -85,7 +84,6 @@ const ReportsPage: React.FC = () => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
       setError('Failed to export PDF report');
       console.error('Export error:', err);
     }
@@ -126,7 +124,7 @@ const ReportsPage: React.FC = () => {
         <>
           <Paper sx={{ p: 3, mb: 3 }}>
             <Grid container spacing={3} alignItems="center">
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Select Client</InputLabel>
                   <Select
@@ -143,7 +141,7 @@ const ReportsPage: React.FC = () => {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Box display="flex" gap={2}>
                   <Tooltip title="Export as CSV">
                     <IconButton
@@ -178,9 +176,9 @@ const ReportsPage: React.FC = () => {
 
           {selectedClient && report && (
             <>
-              <Grid container spacing={3} sx={{ mb: 3 }}>
-                <Grid item xs={12} sm={6} md={4}>
-                  <Card>
+                <Grid container spacing={3} sx={{ mb: 3 }}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <Card>
                     <CardContent>
                       <Typography color="textSecondary" gutterBottom>
                         Total Hours
@@ -191,7 +189,7 @@ const ReportsPage: React.FC = () => {
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <Card>
                     <CardContent>
                       <Typography color="textSecondary" gutterBottom>
@@ -203,7 +201,7 @@ const ReportsPage: React.FC = () => {
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <Card>
                     <CardContent>
                       <Typography color="textSecondary" gutterBottom>

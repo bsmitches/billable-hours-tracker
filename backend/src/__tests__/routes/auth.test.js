@@ -121,6 +121,19 @@ describe('Auth Routes', () => {
       expect(response.status).toBe(500);
       expect(response.body).toEqual({ error: 'Failed to create user' });
     });
+
+    test('should handle unexpected errors in try-catch block', async () => {
+      getDatabase.mockImplementation(() => {
+        throw new Error('Unexpected error');
+      });
+
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'test@example.com' });
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({ error: 'Internal server error' });
+    });
   });
 
   describe('GET /api/auth/me', () => {

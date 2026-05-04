@@ -52,6 +52,26 @@ describe('Database Initialization', () => {
       
       expect(db1).toBe(db2);
     });
+
+    test('should handle database connection error', () => {
+      jest.resetModules();
+      
+      jest.doMock('sqlite3', () => {
+        return {
+          verbose: jest.fn(() => ({
+            Database: jest.fn((path, callback) => {
+              callback(new Error('Connection failed'));
+              return {};
+            })
+          }))
+        };
+      });
+
+      const { getDatabase: getDatabaseWithError } = require('../../database/init');
+      
+      expect(() => getDatabaseWithError()).toThrow('Connection failed');
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Error opening database:', expect.any(Error));
+    });
   });
 
   describe('initializeDatabase', () => {

@@ -66,18 +66,23 @@ class ApiClient {
     return response.data;
   }
 
-  async createClient(clientData: { name: string; description?: string }) {
+  async createClient(clientData: { name: string; description?: string; department?: string; email?: string }) {
     const response = await this.client.post('/api/clients', clientData);
     return response.data;
   }
 
-  async updateClient(id: number, clientData: { name?: string; description?: string }) {
+  async updateClient(id: number, clientData: { name?: string; description?: string; department?: string; email?: string }) {
     const response = await this.client.put(`/api/clients/${id}`, clientData);
     return response.data;
   }
 
   async deleteClient(id: number) {
     const response = await this.client.delete(`/api/clients/${id}`);
+    return response.data;
+  }
+
+  async deleteAllClients() {
+    const response = await this.client.delete('/api/clients');
     return response.data;
   }
 

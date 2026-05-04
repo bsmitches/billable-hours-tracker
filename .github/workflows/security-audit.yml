@@ -1,0 +1,160 @@
+name: Security Audit (CVE Check)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  security-audit:
+    name: NPM Audit – CVE Detection
+    if: "!contains(github.event.pull_request.user.login, 'devin')"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run npm audit
+        id: audit
+        working-directory: frontend
+        continue-on-error: true
+        run: |
+          set +e
+          AUDIT_OUTPUT=$(npm audit --json 2>&1)
+          AUDIT_EXIT=$?
+          echo "$AUDIT_OUTPUT" > /tmp/audit-results.json
+
+          HIGH=$(echo "$AUDIT_OUTPUT" | jq -r '.metadata.vulnerabilities.high // 0')
+          CRITICAL=$(echo "$AUDIT_OUTPUT" | jq -r '.metadata.vulnerabilities.critical // 0')
+          TOTAL_SEVERE=$((HIGH + CRITICAL))
+
+          echo "high=$HIGH" >> "$GITHUB_OUTPUT"
+          echo "critical=$CRITICAL" >> "$GITHUB_OUTPUT"
+          echo "total_severe=$TOTAL_SEVERE" >> "$GITHUB_OUTPUT"
+          echo "audit_exit=$AUDIT_EXIT" >> "$GITHUB_OUTPUT"
+
+          # Build a human-readable summary of high/critical vulns
+          echo "$AUDIT_OUTPUT" | jq -r '
+            .vulnerabilities | to_entries[] |
+            select(.value.severity == "high" or .value.severity == "critical") |
+            "- [\(.value.severity | ascii_upcase)] \(.key)@\(.value.range): \(.value.via | if type == "array" then (map(if type == "object" then .title // .url else . end) | join(", ")) else . end)"
+          ' > /tmp/vuln_details.txt 2>/dev/null || true
+
+          if [ "$TOTAL_SEVERE" -gt 0 ]; then
+            echo "has_vulnerabilities=true" >> "$GITHUB_OUTPUT"
+            echo "Found $TOTAL_SEVERE high/critical vulnerabilities"
+            cat /tmp/vuln_details.txt
+            exit 1
+          else
+            echo "has_vulnerabilities=false" >> "$GITHUB_OUTPUT"
+            echo "No high/critical vulnerabilities found."
+          fi
+
+      - name: Trigger Devin to fix CVEs
+        if: failure() && steps.audit.outputs.has_vulnerabilities == 'true'
+        env:
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          DEVIN_ORG_ID: ${{ secrets.DEVIN_ORG_ID }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          REPO: ${{ github.repository }}
+          TOTAL_SEVERE: ${{ steps.audit.outputs.total_severe }}
+        run: |
+          VULN_DETAILS=$(cat /tmp/vuln_details.txt)
+          AUDIT_JSON=$(cat /tmp/audit-results.json)
+
+          PROMPT=$(cat <<'PROMPT_BOUNDARY'
+          You are a security engineer. npm audit has identified TOTAL_SEVERE_PLACEHOLDER high/critical CVE(s) in the frontend dependencies for PR #PR_NUMBER_PLACEHOLDER in repository REPO_PLACEHOLDER on branch 'BRANCH_PLACEHOLDER'.
+
+          Vulnerabilities found:
+          VULN_DETAILS_PLACEHOLDER
+
+          Instructions:
+          1. Clone the repository REPO_PLACEHOLDER and checkout branch 'BRANCH_PLACEHOLDER'.
+          2. In the frontend/ directory, review package.json and package-lock.json.
+          3. For each high/critical vulnerability, upgrade the affected package to a patched version.
+          4. Run `npm audit` to verify the fixes resolve the CVEs.
+          5. Run `npm run build` to ensure nothing is broken.
+          6. Run `npm run test` to ensure existing tests still pass.
+          7. Commit with message: "fix: resolve high/critical CVEs identified by npm audit"
+          8. Push to branch 'BRANCH_PLACEHOLDER'.
+
+          Constraints:
+          - Only fix security vulnerabilities; do not refactor unrelated code.
+          - Prefer minimal version bumps that resolve the CVE.
+          - If a fix would cause breaking changes, comment on PR #PR_NUMBER_PLACEHOLDER explaining the trade-off.
+          PROMPT_BOUNDARY
+          )
+
+          PROMPT="${PROMPT//TOTAL_SEVERE_PLACEHOLDER/$TOTAL_SEVERE}"
+          PROMPT="${PROMPT//PR_NUMBER_PLACEHOLDER/$PR_NUMBER}"
+          PROMPT="${PROMPT//REPO_PLACEHOLDER/$REPO}"
+          PROMPT="${PROMPT//BRANCH_PLACEHOLDER/$PR_BRANCH}"
+          PROMPT="${PROMPT//VULN_DETAILS_PLACEHOLDER/$VULN_DETAILS}"
+
+          ESCAPED_PROMPT=$(echo "$PROMPT" | jq -Rs .)
+
+          REQUEST_BODY=$(jq -n \
+            --argjson prompt "$ESCAPED_PROMPT" \
+            --arg title "Fix CVEs on PR #${PR_NUMBER}" \
+            --arg repo "$REPO" \
+            '{
+              prompt: $prompt,
+              title: $title,
+              repos: [$repo],
+              tags: ["cve-fix", "automated", "security-audit"]
+            }')
+
+          HTTP_RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
+            -H "Authorization: Bearer ${DEVIN_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$REQUEST_BODY" \
+            "https://api.devin.ai/v3/organizations/${DEVIN_ORG_ID}/sessions")
+
+          HTTP_BODY=$(echo "$HTTP_RESPONSE" | sed '/^HTTP_STATUS:/d')
+          HTTP_CODE=$(echo "$HTTP_RESPONSE" | grep '^HTTP_STATUS:' | cut -d: -f2)
+
+          if [ "$HTTP_CODE" -eq 200 ]; then
+            SESSION_URL=$(echo "$HTTP_BODY" | jq -r '.url')
+            SESSION_ID=$(echo "$HTTP_BODY" | jq -r '.session_id')
+            echo "Devin session created: ${SESSION_URL}"
+            echo "Session ID: ${SESSION_ID}"
+          else
+            echo "::error::Failed to create Devin session (HTTP ${HTTP_CODE})"
+            echo "$HTTP_BODY"
+            exit 1
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Security Audit – CVE Check"
+            echo ""
+            if [ "${{ steps.audit.outputs.has_vulnerabilities }}" = "true" ]; then
+              echo "**Found ${{ steps.audit.outputs.total_severe }} high/critical vulnerability(ies)** (${{ steps.audit.outputs.high }} high, ${{ steps.audit.outputs.critical }} critical)."
+              echo ""
+              echo "A Devin session has been triggered to fix them automatically."
+              echo ""
+              echo '```'
+              cat /tmp/vuln_details.txt 2>/dev/null || echo "Details unavailable"
+              echo '```'
+            else
+              echo "No high/critical vulnerabilities found."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
