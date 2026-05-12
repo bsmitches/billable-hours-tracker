@@ -39,7 +39,7 @@ describe('Client Routes', () => {
   });
 
   describe('GET /api/clients', () => {
-    test('should return all clients for authenticated user', async () => {
+    test('should return all clients shared across employees', async () => {
       const mockClients = [
         { id: 1, name: 'Client A', description: 'Desc A', created_at: '2024-01-01', updated_at: '2024-01-01' },
         { id: 2, name: 'Client B', description: 'Desc B', created_at: '2024-01-02', updated_at: '2024-01-02' }
@@ -55,7 +55,7 @@ describe('Client Routes', () => {
       expect(response.body).toEqual({ clients: mockClients });
       expect(mockDb.all).toHaveBeenCalledWith(
         expect.stringContaining('SELECT id, name, description'),
-        ['test@example.com'],
+        [],
         expect.any(Function)
       );
     });
@@ -137,7 +137,10 @@ describe('Client Routes', () => {
         callback.call(this, null);
       });
 
-      mockDb.get.mockImplementation((query, params, callback) => {
+      // First call checks for existing client (none found), second returns created client
+      mockDb.get.mockImplementationOnce((query, params, callback) => {
+        callback(null, null); // No existing client
+      }).mockImplementationOnce((query, params, callback) => {
         callback(null, createdClient);
       });
 
@@ -159,7 +162,9 @@ describe('Client Routes', () => {
         callback.call(this, null);
       });
 
-      mockDb.get.mockImplementation((query, params, callback) => {
+      mockDb.get.mockImplementationOnce((query, params, callback) => {
+        callback(null, null); // No existing client
+      }).mockImplementationOnce((query, params, callback) => {
         callback(null, createdClient);
       });
 
@@ -168,6 +173,21 @@ describe('Client Routes', () => {
         .send(newClient);
 
       expect(response.status).toBe(201);
+    });
+
+    test('should return 409 when client with same name already exists', async () => {
+      const existingClient = { id: 1, name: 'Existing Client', description: 'Desc', created_at: '2024-01-01', updated_at: '2024-01-01' };
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, existingClient); // Client already exists
+      });
+
+      const response = await request(app)
+        .post('/api/clients')
+        .send({ name: 'Existing Client' });
+
+      expect(response.status).toBe(409);
+      expect(response.body).toEqual({ error: 'A client with this name already exists' });
     });
 
     test('should return 400 for missing name', async () => {
@@ -187,6 +207,10 @@ describe('Client Routes', () => {
     });
 
     test('should handle database insert error', async () => {
+      mockDb.get.mockImplementationOnce((query, params, callback) => {
+        callback(null, null); // No existing client
+      });
+
       mockDb.run.mockImplementation((query, params, callback) => {
         callback(new Error('Insert failed'));
       });
